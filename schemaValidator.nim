@@ -1,4 +1,7 @@
-import json, strutils, sequtils, math, unicode
+import json, strutils, sequtils, math, unicode, re
+
+# created according to:
+# https://tools.ietf.org/pdf/draft-handrews-json-schema-validation-01.pdf
 
 type
   SchemaKind* = enum
@@ -15,6 +18,15 @@ type
     skExclusiveMinimum = "exclusiveMinimum"
     skMinLength = "minLength"
     skMaxLength = "maxLength"
+    skPattern = "pattern"
+    skItems = "items"
+    skAdditionalItems = "additionalItems"
+    skMaxItems = "maxItems"
+    skMinItems = "minItems"
+    skUniqueItems = "uniqueItems"
+    skContains = "contains"
+    skMaxProperties = "maxProperties"
+    skMinProperties = "minProperties"
 
   TypeKind* = enum
     tyInteger = "integer"
@@ -108,14 +120,17 @@ proc handleRequired(scValue, data: JsonNode): bool =
   doAssert scValue.kind == JArray, " required field MUST be an array!"
   doAssert scValue.getElems.allit(it.kind == JString), " all elements of " &
     "required array MUST be strings!"
-  result = true
-  for x in scValue:
-    let v = data{x.getStr}
-    if v.isNil:
-      # required field does not exist
-      result = false
-      break
-
+  case data.kind
+  of JObject:
+    result = true
+    for x in scValue:
+      let v = data{x.getStr}
+      if v.isNil:
+        # required field does not exist
+        result = false
+        break
+  else:
+    result = true
 
 proc handleEnum(scValue, data: JsonNode): bool =
   ## check whether `data` validates against elements of `enum`
@@ -123,12 +138,159 @@ proc handleEnum(scValue, data: JsonNode): bool =
   # TODO: Make a warning?
   if scValue.len == 0:
     echo "enum array SHOULD have at least 1 element!"
-  #result = false
-  #for x in scValue:
-    #
-
-  #  let res = handle
   result = scValue.getElems.anyIt(it == data)
+
+proc handlePattern(scValue, data: JsonNode): bool =
+  ## check whether string of `data` conforms to `scValue` regex pattern
+  doAssert scValue.kind == JString, " pattern kind MUST be a string!"
+  case data.kind
+  of JString:
+    let regex = re(scValue.getStr)
+    let str = data.getStr
+    # search for pattern in string (needed because pattern is not necessarily
+    # from beginning of string!)
+    let start = find(str, regex)
+    if start >= 0:
+      result = if match(data.getStr, regex, start): true else: false
+    else:
+      result = false
+  else:
+    result = true
+
+proc handleItems(scValue, data: JsonNode): bool =
+  ## check if all elements of `data` validate against `scValue` schema
+  ## or if (scValue is array) each element of `data` is valid for
+  ## the schema of `scValue` at the same index
+  # TODO: assert scValue either valid schema or array of valid schemas
+  let scItems = scValue[$skItems]
+  let scAddItems = scValue[$skAdditionalItems]
+
+  case scItems.kind
+  of JArray:
+    # check each idx
+    result = true
+    case data.kind
+    of JArray:
+      var idx = 0
+      for x in scItems:
+        if idx < data.len:
+          result = result and (validate(x, data[idx]))
+          inc idx
+        else:
+          break
+      if data.len > scItems.len:
+        # TODO: put this into a call to handleItems itself?
+        # continue with additionalItems, if any
+        if not scAddItems.isNil:
+          case scAddItems.kind
+          of JArray:
+            for x in scAddItems:
+              if idx < data.len:
+                result = result and (validate(x, data[idx]))
+                inc idx
+              else:
+                break
+          else:
+            # TODO: only validate starting from idx?
+            for i in idx ..< data.len:
+              result = result and (validate(scAddItems, data[idx]))
+              inc idx
+    else:
+      # if data is not array: is valid
+      result = true
+  else:
+    # Ignore additional Items always
+    case data.kind
+    of JArray:
+      result = true
+      for x in data:
+        echo "X is ", x, " for scal ", scItems
+        echo "scval kind ", scItems.kind
+        result = result and (validate(scItems, x))
+    else:
+      result = true
+
+proc handleMaxItems(scValue, data: JsonNode): bool =
+  ## checks whether `data` is of length <= `scValue` if data is an array
+  doAssert scValue.kind == JInt, " maxItems MUST be an integer!"
+  doAssert scValue.getInt >= 0, " maxItems MUST be an integer >= 0!"
+  case data.kind
+  of JArray:
+    result = if data.len <= scValue.getInt: true else: false
+  else:
+    result = true
+
+proc handleMinItems(scValue, data: JsonNode): bool =
+  ## checks whether `data` is of length >= `scValue` if data is an array
+  doAssert scValue.kind == JInt, " minItems MUST be an integer!"
+  doAssert scValue.getInt >= 0, " minItems MUST be an integer >= 0!"
+  case data.kind
+  of JArray:
+    result = if data.len >= scValue.getInt: true else: false
+  else:
+    result = true
+
+proc handleUniqueItems(scValue, data: JsonNode): bool =
+  ## checks whether data array does not contain duplicates
+  doAssert scValue.kind == JBool, " uniqueItems MUST be a boolean!"
+  let val = scValue.getBool
+  if not val:
+    result = true
+  else:
+    case data.kind
+    of JArray:
+      let elems = data.getElems
+      result = if elems.deduplicate.len == elems.len: true else: false
+    else:
+      doAssert false, "Invalid type for?! " & $scValue & " with data " & $data
+
+proc handleContains(scValue, data: JsonNode): bool =
+  ## checks whether `scValue` is equal to any element in data
+  case data.kind
+  of JArray:
+    # check whether any is valid
+    result = false
+    for x in data:
+      result = result or (validate(scValue, x))
+      if result:
+        break
+  else:
+    # not array is valid
+    result = true
+
+proc handleMaxProperties(scValue, data: JsonNode): bool =
+  ## checks whether `data` has <= `scValue` properties
+  doAssert scValue.kind == JInt, " maxProperties MUST be an integer!"
+  doAssert scValue.getInt >= 0, " maxProperties MUST be >= 0!"
+  case data.kind
+  of JObject:
+    result = true
+    var count = 0
+    for k, v in pairs(data):
+      inc count
+      if count > scValue.getInt:
+        result = false
+        break
+  else:
+    # if non object is ignored
+    result = true
+
+proc handleMinProperties(scValue, data: JsonNode): bool =
+  ## checks whether `data` has <= `scValue` properties
+  doAssert scValue.kind == JInt, " maxProperties MUST be an integer!"
+  doAssert scValue.getInt >= 0, " maxProperties MUST be >= 0!"
+  case data.kind
+  of JObject:
+    result = false
+    var count = 0
+    for k, v in pairs(data):
+      inc count
+      if count >= scValue.getInt:
+        result = true
+        break
+  else:
+    # if non object is ignored
+    result = true
 
 proc handleProperties(scValue, data: JsonNode): bool =
   ## check whether given `properties` schema value is true for `data`
@@ -143,6 +305,7 @@ proc handleProperties(scValue, data: JsonNode): bool =
     if not dataVal.isNil:
       # if it exists, check if it's valid given `v`
       echo "Validating ", dataVal
+      # TODO: Combine all  calls to Validate in one!!!
       result = validate(v, dataVal) #handleKind(scKind, v, data)
     else:
       # if `properties` key not found in `data` it's valid,
@@ -158,6 +321,7 @@ proc handleNot(scValue, data: JsonNode): bool =
   case scValue.kind
   of JBool:
     # if not is boolean, allow / disallow everything
+    # TODO: still needed if `validates` handles JBool of schema?
     result = not scValue.getBool
   of JObject:
     for k, v in pairs(scValue):
@@ -256,19 +420,71 @@ proc handleKind(scKind: SchemaKind, scValue: JsonNode, data: JsonNode): bool =
   of skMaxLength:
     echo "Handle max length"
     result = handleMaxLength(scValue, data)
-
+  of skPattern:
+    echo "Handle pattern"
+    result = handlePattern(scValue, data)
+  of skItems:
+    echo "Handle items"
+    result = handleItems(scValue, data)
+  of skAdditionalItems:
+    echo "Handle additional items"
+    echo "Additional items MUST NOT be handled individually!"
+  of skMaxItems:
+    echo "Handle max Items"
+    result = handleMaxItems(scValue, data)
+  of skMinItems:
+    echo "Handle min Items"
+    result = handleMinItems(scValue, data)
+  of skUniqueItems:
+    echo "Handle unique items"
+    result = handleUniqueItems(scValue, data)
+  of skContains:
+    echo "Handle conatins"
+    result = handleContains(scValue, data)
+  of skMaxProperties:
+    echo "Handle max properties"
+    result = handleMaxProperties(scValue, data)
+  of skMinProperties:
+    echo "Handle min properties"
+    result = handleMinProperties(scValue, data)
   #else:
   #  echo "Invalid for ", scKind
 
 proc validate*(schema: JsonNode, data: JsonNode): bool =
   result = true
-  for k, v in schema:
-    # check each element of the schema on the data
-    let scKind = parseEnum[SchemaKind](k)
-    # deal with current scKind
-    let res = handleKind(scKind, v, data)
-    if not res:
-      echo "Handled kind ", scKind, " for v ", v, " in data ", data
-      result = false
-      break
-    result = result and res
+  echo "validating something ", schema, " TYPE ", schema.kind
+  case schema.kind
+  of JObject:
+    for k, v in schema:
+      # check each element of the schema on the data
+      let scKind = parseEnum[SchemaKind](k)
+      var addItems: JsonNode
+      var res: bool
+      case scKind
+      of skItems:
+        # check if additional items exists
+        let addItems = schema{$skAdditionalItems}
+        # build object containing only `items` and `additionalItems`
+        let scArray = %* {$skItems: v, $skAdditionalItems: addItems}
+        res = handleKind(scKind, scArray, data)
+      of skAdditionalItems:
+        # skip, because dealt with together with items
+        continue
+      else:
+        # deal with current scKind
+        res = handleKind(scKind, v, data)
+
+      if not res:
+        echo "Handled kind ", scKind, " for v ", v, " in data ", data
+        result = false
+        break
+      result = result and res
+  of JBool:
+    result = schema.getBool
+    if not result and
+       data.kind == JArray and
+       data.getElems.len == 0:
+      # if schema boolean false and data is empty array, true anyways
+      result = true
+  else:
+    doAssert false, " unsupported schema type?! " & $schema.kind & " val " & $schema

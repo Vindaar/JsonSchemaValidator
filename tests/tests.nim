@@ -45,6 +45,9 @@ proc validateTests(file: JsonNode): bool =
 suite "Additional Items":
   test "Test1":
     let tests = parseFile("tests/additionalItems.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "Additional Properties":
   test "Test1":
@@ -68,6 +71,9 @@ suite "Constants":
 suite "Contains":
   test "Test1":
     let tests = parseFile("tests/contains.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "Definitions":
   test "Test1":
@@ -105,6 +111,9 @@ suite "If then else":
 suite "Items":
   test "Test1":
     let tests = parseFile("tests/items.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "maximum.json":
   test "Test1":
@@ -116,6 +125,9 @@ suite "maximum.json":
 suite "maxItems.json":
   test "Test1":
     let tests = parseFile("tests/maxItems.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "maxLength.json":
   test "Test1":
@@ -126,7 +138,10 @@ suite "maxLength.json":
 
 suite "maxProperties.json":
   test "Test1":
-          let tests = parseFile("tests/maxProperties.json")
+    let tests = parseFile("tests/maxProperties.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "minimum.json":
   test "Test1":
@@ -138,6 +153,9 @@ suite "minimum.json":
 suite "minItems.json":
   test "Test1":
     let tests = parseFile("tests/minItems.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "minLength.json":
   test "Test1":
@@ -149,6 +167,9 @@ suite "minLength.json":
 suite "minProperties.json":
   test "Test1":
     let tests = parseFile("tests/minProperties.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "multipleOf.json":
   test "Test1":
@@ -172,6 +193,9 @@ suite "oneOf.json":
 suite "pattern.json":
   test "Test1":
     let tests = parseFile("tests/pattern.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "patternProperties.json":
   test "Test1":
@@ -180,6 +204,9 @@ suite "patternProperties.json":
 suite "properties.json":
   test "Test1":
     let tests = parseFile("tests/properties.json")
+    #let res = validateTests(tests)
+    #echo "Res is ", res
+    #check res
 
 suite "propertyNames.json":
   test "Test1":
@@ -196,6 +223,9 @@ suite "refRemote.json":
 suite "required.json":
   test "Test1":
     let tests = parseFile("tests/required.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "type.json":
   test "Test1":
@@ -204,7 +234,9 @@ suite "type.json":
     echo "Res is ", res
     check res
 
-
 suite "uniqueItems.json":
   test "Test1":
     let tests = parseFile("tests/uniqueItems.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
