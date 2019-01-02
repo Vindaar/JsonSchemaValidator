@@ -33,6 +33,7 @@ proc validateTest(test: JsonNode): bool =
     let testRes = validate(schema, data)
     let expectedResult = t["valid"].getBool
     echo "This test ", testRes, " aa ", data, " for expected ", expectedResult
+    echo "\n\n\n"
     result = result and (testRes == expectedResult)
 
 
@@ -49,17 +50,19 @@ suite "Additional Items":
     echo "Res is ", res
     check res
 
-suite "Additional Properties":
-  test "Test1":
-    let tests = parseFile("tests/additionalProperties.json")
-
 suite "All Of":
   test "Test1":
     let tests = parseFile("tests/allOf.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "Any Of":
   test "Test1":
     let tests = parseFile("tests/anyOf.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "Constants":
   test "Test1":
@@ -79,9 +82,6 @@ suite "Definitions":
   test "Test1":
     let tests = parseFile("tests/definitions.json")
 
-suite "Dependencies":
-  test "Test1":
-    let tests = parseFile("tests/dependencies.json")
 
 suite "Enumerations":
   test "Test1":
@@ -107,6 +107,9 @@ suite "Exclusive Minimum":
 suite "If then else":
   test "Test1":
     let tests = parseFile("tests/if-then-else.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "Items":
   test "Test1":
@@ -188,6 +191,9 @@ suite "not.json":
 suite "oneOf.json":
   test "Test1":
     let tests = parseFile("tests/oneOf.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 #optional/
 suite "pattern.json":
@@ -200,21 +206,16 @@ suite "pattern.json":
 suite "patternProperties.json":
   test "Test1":
     let tests = parseFile("tests/patternProperties.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "properties.json":
   test "Test1":
     let tests = parseFile("tests/properties.json")
-    #let res = validateTests(tests)
-    #echo "Res is ", res
-    #check res
-
-suite "propertyNames.json":
-  test "Test1":
-    let tests = parseFile("tests/propertyNames.json")
-
-suite "ref.json":
-  test "Test1":
-    let tests = parseFile("tests/ref.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
 
 suite "refRemote.json":
   test "Test1":
@@ -237,6 +238,34 @@ suite "type.json":
 suite "uniqueItems.json":
   test "Test1":
     let tests = parseFile("tests/uniqueItems.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
+
+suite "Additional Properties":
+  test "Test1":
+    let tests = parseFile("tests/additionalProperties.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
+
+suite "propertyNames.json":
+  test "Test1":
+    let tests = parseFile("tests/propertyNames.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
+
+suite "Dependencies":
+  test "Test1":
+    let tests = parseFile("tests/dependencies.json")
+    let res = validateTests(tests)
+    echo "Res is ", res
+    check res
+
+suite "ref.json":
+  test "Test1":
+    let tests = parseFile("tests/ref.json")
     let res = validateTests(tests)
     echo "Res is ", res
     check res
