@@ -1,0 +1,10 @@
+* JsonSchemaValidator
+This library is provides a [[https://json-schema.org/][JSON Schema]] validator, based on the current
+draft 07: https://json-schema.org/latest/json-schema-validation.html.
+
+It uses the official [[https://github.com/json-schema-org/JSON-Schema-Test-Suite][JSON Schema Test Suite]]. Currently almost all normal
+tests are passing, with the exception of one test of
+=additionalProperties= as well as one =ref= test case. The optional
+test cases have not been considered so far. 
+
+It is very much WIP!
