@@ -8,3 +8,10 @@ tests are passing, with the exception of one test of
 test cases have not been considered so far. 
 
 It is very much WIP!
+
+** Usage
+The library provides a single exported procedure =validate=, which
+takes both a =schema: JsonNode=, and some =data: JsonNode= to validate
+against the schema. A =bool= is returned indicating whether =data= is
+valid under =schema=. Currently no errors as to what parts of the
+data are wrong are provided.
