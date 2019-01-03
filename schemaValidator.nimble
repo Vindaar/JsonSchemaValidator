@@ -2,10 +2,8 @@
 
 version       = "0.1.0"
 author        = "Vindaar"
-description   = "A JSON schema validator library in Nim"
+description   = "A JSON Schema validator library in Nim"
 license       = "MIT"
-srcDir        = "src"
-
 
 # Dependencies
 
