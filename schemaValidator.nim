@@ -417,7 +417,7 @@ proc handleProperties(scValue, data: JsonNode): bool =
   var mdata = data
   result = true #false
   var matched = false
-  var matchedKeys = initSet[string]()
+  var matchedKeys = initHashSet[string]()
   for k, v in pairs(scProps):
     # let scKind = parseEnum[SchemaKind]($k)
     #echo "in not ", scKind
@@ -790,7 +790,7 @@ proc handleKind(scKind: SchemaKind, scValue: JsonNode, data: JsonNode): bool =
     echo "Additional properties MUST NOT be handled individually!"
   of skPatternProperties:
     #echo "Handle pattern properties"
-    var matchedKeys = initSet[string]()
+    var matchedKeys = initHashSet[string]()
     let optRes = handlePatternProperties(scValue, data, matchedKeys)
     if optRes.isSome:
       result = get(optRes)
