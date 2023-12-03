@@ -674,7 +674,8 @@ proc resolveReference(schema: JsonNode, link: string): (string, JsonNode) =
     result[0] = path[path.high]
   of "http:", "https:":
     # get content from URL
-    let data = getContent(link)
+    let client = httpclient.newHttpClient()
+    let data = client.getContent(link)
     #echo "Data is ", data
     result[1] = data.parseJson
     CurrentSchema = data.parseJson
